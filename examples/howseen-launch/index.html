@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Howseen launch</title>
+<link rel="stylesheet" href="../../skill/motion-design/engine/engine.css">
+<style>
+  @font-face { font-family: "Geist"; src: url("assets/fonts/Geist-Variable.woff2") format("woff2"); font-weight: 100 900; }
+  :root { --bg:#0a0a10; --ink:#f5f5fa; --mut:#9a9ab0; --vio:#8b6cff; --flood:#5b3df5; --card:#14141f; --line:#26263a; --bad:#ff5d6c; --ok:#3ddc97; }
+  body { font-family: "Geist", "Inter", system-ui, sans-serif; color: var(--ink); -webkit-font-smoothing: antialiased; }
+  .scene { position: absolute; inset: 0; }
+  h1, h2 { margin: 0; font-weight: 600; letter-spacing: -0.035em; line-height: 1.02; }
+  .mut { color: var(--mut); }
+  .chip { display: inline-flex; align-items: center; gap: 12px; padding: 10px 18px; border-radius: 999px; background: #1d1d2d; font-size: 26px; font-weight: 500; }
+  .chip i { width: 16px; height: 16px; border-radius: 50%; display: block; }
+  .chip img { height: 26px; }
+  .tag { position: absolute; right: 56px; top: 44px; font-size: 22px; letter-spacing: .04em; text-transform: uppercase; color: rgba(255,255,255,.62); border: 1px solid rgba(255,255,255,.22); padding: 8px 14px; border-radius: 8px; }
+
+  /* A — hook */
+  #sA { background: radial-gradient(900px 600px at var(--gx,30%) var(--gy,40%), #1c1640 0%, var(--bg) 70%); }
+  #camA { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; transform-origin: 0 0; }
+  #hook { font-size: 132px; width: 1400px; }
+  #hookSub { font-size: 44px; margin: 36px 0 0; }
+  #hookWrap { position: absolute; left: 150px; top: 290px; }
+
+  /* B — three engines */
+  #sB { background: var(--bg); }
+  #camB { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; transform-origin: 0 0; }
+  .card { position: absolute; background: var(--card); border: 1px solid var(--line); border-radius: 28px; padding: 36px; }
+  .eng { width: 540px; height: 640px; top: 210px; }
+  .bubble { margin-top: 30px; background: #22223a; border-radius: 18px; padding: 18px 22px; font-size: 27px; line-height: 1.3; min-height: 66px; }
+  .ans { margin-top: 26px; font-size: 31px; line-height: 1.9; min-height: 190px; }
+  .miss { position: absolute; left: 36px; right: 36px; bottom: 36px; padding: 18px 22px; border-radius: 16px; background: rgba(255,93,108,.14); color: var(--bad); font-size: 30px; font-weight: 600; display: flex; gap: 14px; align-items: center; }
+  #capB { position: absolute; left: 90px; top: 92px; font-size: 54px; font-weight: 600; letter-spacing: -.03em; }
+
+  /* flood */
+  #flood { position: absolute; inset: 0; background: var(--flood); }
+
+  /* C — dashboard */
+  #sC { background: var(--flood); }
+  #glowC { position: absolute; inset: 0; background: radial-gradient(1200px 800px at 80% 10%, #7d63ff 0%, transparent 60%); }
+  #score { left: 140px; top: 190px; width: 760px; height: 700px; }
+  #bars { left: 960px; top: 190px; width: 820px; height: 700px; --md-beam: #b9a8ff; }
+  .lbl { font-size: 30px; color: var(--mut); font-weight: 500; }
+  #ringWrap { position: absolute; left: 190px; top: 170px; width: 380px; height: 380px; }
+  #num { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 150px; font-weight: 600; letter-spacing: -.05em; }
+  #delta { position: absolute; left: 36px; bottom: 36px; }
+  .row { margin-top: 56px; }
+  .row .top { display: flex; justify-content: space-between; font-size: 34px; font-weight: 500; margin-bottom: 18px; }
+  .track { height: 26px; border-radius: 13px; background: #23233a; overflow: hidden; }
+  .fill { height: 100%; border-radius: 13px; background: linear-gradient(90deg, #6a4cff, #b9a8ff); width: 0; }
+  #foot { position: absolute; left: 0; right: 0; bottom: 70px; text-align: center; font-size: 26px; color: rgba(255,255,255,.7); }
+
+  /* D — beams */
+  #sD { background: var(--bg); }
+  svg.net { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; }
+  .node { position: absolute; transform: translate(-50%,-50%); }
+  #brand { padding: 26px 40px; border-radius: 26px; background: var(--flood); font-size: 44px; font-weight: 600; }
+  .eng-node { padding: 20px 30px; border-radius: 20px; background: var(--card); border: 2px solid var(--line); font-size: 36px; font-weight: 500; }
+  #headD { position: absolute; left: 110px; top: 90px; font-size: 92px; width: 1100px; }
+
+  /* E — end card */
+  #sE { background: radial-gradient(900px 600px at 50% 50%, #1c1640 0%, var(--bg) 70%); }
+  #logoRow { position: absolute; left: 0; right: 0; top: 380px; display: flex; justify-content: center; align-items: center; gap: 26px; }
+  #dot { width: 44px; height: 44px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #c3b5ff, var(--flood)); box-shadow: 0 0 60px rgba(139,108,255,.55); }
+  #word { font-size: 150px; font-weight: 600; letter-spacing: -.05em; line-height: 1; }
+  #url { position: absolute; left: 0; right: 0; top: 590px; text-align: center; font-size: 64px; font-weight: 500; color: var(--vio); }
+  #tag { position: absolute; left: 0; right: 0; top: 700px; text-align: center; font-size: 46px; color: var(--mut); }
+</style>
+</head>
+<body>
+<div id="stage">
+
+  <!-- A -->
+  <section id="sA" class="scene"><div id="camA"><div id="hookWrap">
+    <h1 id="hook">Does ChatGPT recommend your brand?</h1>
+    <p id="hookSub" class="mut">Ask the AI engines. Count the mentions.</p>
+  </div></div></section>
+
+  <!-- B -->
+  <section id="sB" class="scene"><div id="camB">
+    <div id="capB">Same question. Three engines.</div>
+    <div class="tag">Example data</div>
+  </div></section>
+
+  <!-- C -->
+  <section id="sC" class="scene"><div id="glowC"></div>
+    <div class="tag">Example data</div>
+    <div id="score" class="card">
+      <div class="lbl">AI visibility score</div>
+      <div id="ringWrap">
+        <svg viewBox="0 0 380 380" width="380" height="380">
+          <circle cx="190" cy="190" r="150" fill="none" stroke="#23233a" stroke-width="30"/>
+          <circle id="ring" cx="190" cy="190" r="150" fill="none" stroke="url(#rg)" stroke-width="30" stroke-linecap="round" transform="rotate(-90 190 190)"/>
+          <defs><linearGradient id="rg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6a4cff"/><stop offset="1" stop-color="#c3b5ff"/></linearGradient></defs>
+        </svg>
+        <div id="num">0</div>
+      </div>
+      <span id="delta" class="chip"><i style="background:var(--ok)"></i><span id="deltaT">+0 this month</span></span>
+    </div>
+    <div id="bars" class="card md-border-beam">
+      <div class="lbl">Answers that mention you</div>
+      <div class="row"><div class="top"><span>ChatGPT</span><span class="v">0%</span></div><div class="track"><div class="fill"></div></div></div>
+      <div class="row"><div class="top"><span>Gemini</span><span class="v">0%</span></div><div class="track"><div class="fill"></div></div></div>
+      <div class="row"><div class="top"><span>Perplexity</span><span class="v">0%</span></div><div class="track"><div class="fill"></div></div></div>
+    </div>
+    <div id="foot">Example data — illustrative numbers</div>
+  </section>
+
+  <!-- D -->
+  <section id="sD" class="scene">
+    <h2 id="headD">One tracker. Every AI engine.</h2>
+    <svg class="net" viewBox="0 0 1920 1080">
+      <g fill="none" stroke-width="3">
+        <path class="base" d="M560 700 C 900 700, 1000 420, 1400 420" stroke="#2a2a40"/>
+        <path class="base" d="M560 700 C 900 700, 1100 700, 1400 700" stroke="#2a2a40"/>
+        <path class="base" d="M560 700 C 900 700, 1000 980, 1400 980" stroke="#2a2a40"/>
+        <path class="pulse" d="M560 700 C 900 700, 1000 420, 1400 420" stroke="#a590ff" stroke-width="6" stroke-linecap="round"/>
+        <path class="pulse" d="M560 700 C 900 700, 1100 700, 1400 700" stroke="#a590ff" stroke-width="6" stroke-linecap="round"/>
+        <path class="pulse" d="M560 700 C 900 700, 1000 980, 1400 980" stroke="#a590ff" stroke-width="6" stroke-linecap="round"/>
+      </g>
+    </svg>
+    <div id="brand" class="node" style="left:480px;top:700px">Your brand</div>
+    <div class="eng-node node" style="left:1520px;top:420px">ChatGPT</div>
+    <div class="eng-node node" style="left:1520px;top:700px">Gemini</div>
+    <div class="eng-node node" style="left:1520px;top:980px">Perplexity</div>
+  </section>
+
+  <!-- E -->
+  <section id="sE" class="scene">
+    <div id="logoRow"><div id="dot"></div><div id="word">howseen</div></div>
+    <div id="url">howseen.ai</div>
+    <div id="tag">See if AI recommends you.</div>
+  </section>
+
+  <div id="flood"></div>
+</div>
+
+<script src="../../skill/motion-design/engine/engine.js"></script>
+<script>
+(() => {
+  const W = 1920, H = 1080, $ = (s, r = document) => r.querySelector(s), $$ = (s, r = document) => [...r.querySelectorAll(s)];
+  const { ease, spring, prog, map, lerp } = MD;
+  MD.beats = { bpm: 120, offset: 0 };     // 0.5 s per beat; every scene boundary lands on a beat
+  MD.duration = 24;
+  MD.cuts = [3, 14, 19];                  // hard cuts: the renderer never motion-blurs across them
+  const DROP = 8.0;                       // the music's drop lands on the flood completing (see audio.py)
+
+  /* ---- build the three engine cards once ---- */
+  const ENG = [
+    { name: "ChatGPT",    color: "#10a37f", logo: "chatgpt",    list: ["Acme Analytics", "Globex Insights", "Initech Metrics"] },
+    { name: "Gemini",     color: "#5b8def", logo: "gemini",     list: ["Globex Insights", "Hooli Track", "Acme Analytics"] },
+    { name: "Perplexity", color: "#22b8cf", logo: "perplexity", list: ["Initech Metrics", "Acme Analytics", "Umbrella Data"] },
+  ];
+  const PROMPT = "Best tool to track AI visibility?";
+  const camB = $("#camB");
+  const cards = ENG.map((e, i) => {
+    const c = document.createElement("div");
+    c.className = "card eng"; c.style.left = 90 + i * 600 + "px";
+    c.innerHTML = `<span class="chip"><img src="assets/logos/${e.logo}.svg" onerror="this.replaceWith(Object.assign(document.createElement('i'),{style:'background:${e.color}'}))">${e.name}</span>
+      <div class="bubble"></div><div class="ans"></div><div class="miss">✕ <span>Your brand: not mentioned</span></div>`;
+    camB.appendChild(c);
+    return { el: c, bubble: $(".bubble", c), ans: $(".ans", c), miss: $(".miss", c), e };
+  });
+
+  /* ---- A: hook (0 – 3) ---- */
+  const camA = MD.camera([{ t: 0, x: 960, y: 540, z: 1 }, { t: 3, x: 980, y: 540, z: 1.1 }], ease.linear);
+  MD.scene(0, 3, (lt) => {
+    MD.revealWords($("#hook"), lt, { start: 0.15, stagger: 0.07 });
+    const s = spring(lt - 0.9, { k: 160, c: 22 });
+    $("#hookSub").style.opacity = s; $("#hookSub").style.transform = `translateY(${(1 - s) * 30}px)`;
+    MD.applyCamera($("#camA"), camA(lt), W, H);
+    $("#sA").style.setProperty("--gx", 30 + lt * 8 + "%");
+  }, "#sA");
+
+  /* ---- B: three engines (3 – 8, flood covers 6.5 – 8) ---- */
+  const camBK = MD.camera([{ t: 0, x: 960, y: 540, z: 1 }, { t: 2.4, x: 960, y: 540, z: 1 }, { t: 4.5, x: 960, y: 640, z: 1.7 }]);
+  MD.scene(3, 8, (lt) => {
+    MD.revealWords($("#capB"), lt, { start: 0.05, stagger: 0.06 });
+    cards.forEach((c, i) => {
+      const s = spring(lt - 0.1 - i * 0.12, { k: 190, c: 20 });
+      c.el.style.opacity = Math.min(1, s * 1.6); c.el.style.transform = `translateY(${(1 - s) * 140}px)`;
+      c.bubble.textContent = MD.typed(PROMPT, lt, 0.5 + i * 0.1, 42);
+      const line = (k) => MD.typed(`${k + 1}. ${c.e.list[k]}`, lt, 1.3 + i * 0.1 + k * 0.38, 34);
+      c.ans.innerHTML = [0, 1, 2].map((k) => `<div>${line(k) || "&nbsp;"}</div>`).join("");
+      const m = spring(lt - 2.55 - i * 0.14, { k: 260, c: 20 });
+      c.miss.style.opacity = Math.min(1, m * 2); c.miss.style.transform = `scale(${lerp(0.9, 1, m)})`;
+    });
+    MD.applyCamera(camB, camBK(lt), W, H);
+  }, "#sB");
+  MD.scene(6.5, 8, (lt, d, p) => MD.flood($("#flood"), 960, 600, ease.bezier(0.7, 0, 0.2, 1)(p), W, H), "#flood");
+
+  /* ---- C: dashboard (8 – 14) ---- */
+  const C = 2 * Math.PI * 150, SCORE = 68, VALS = [72, 64, 69];
+  MD.scene(DROP, 14, (lt) => {
+    $("#glowC").style.opacity = prog(lt, 0, 0.6);
+    $$("#score, #bars").forEach((el, i) => {
+      const s = spring(lt - 0.05 - i * 0.14, { k: 200, c: 21 });
+      el.style.opacity = Math.min(1, s * 1.5);
+      el.style.transform = `translateY(${(1 - s) * 90}px)`;
+    });
+    const e = ease.outExpo(prog(lt, 0.4, 2.6));
+    $("#ring").style.strokeDasharray = C; $("#ring").style.strokeDashoffset = C * (1 - (SCORE / 100) * e);
+    $("#num").textContent = Math.round(SCORE * e);
+    $("#deltaT").textContent = "+" + Math.round(12 * e) + " this month";
+    $("#ringWrap").style.transform = `scale(${1 + 0.018 * MD.pulse(lt + DROP, 7) * prog(lt, 2.5, 2.7)})`;
+    $$(".row").forEach((r, i) => {
+      const s = Math.max(0, spring(lt - 0.9 - i * 0.18, { k: 120, c: 20 }));
+      $(".fill", r).style.width = VALS[i] * s + "%";
+      $(".v", r).textContent = Math.round(VALS[i] * s) + "%";
+    });
+    MD.borderBeam($("#bars"), lt, 3.2);
+    $("#foot").style.opacity = prog(lt, 1.0, 1.4);
+  }, "#sC");
+
+  /* ---- D: animated beams (14 – 19) ---- */
+  const pulses = $$("#sD .pulse"), nodes = $$("#sD .eng-node");
+  MD.scene(14, 19, (lt) => {
+    MD.revealWords($("#headD"), lt, { start: 0.1, stagger: 0.09 });
+    const s = spring(lt - 0.25, { k: 220, c: 22 }); $("#brand").style.transform = `translate(-50%,-50%) scale(${s})`;
+    pulses.forEach((p, i) => {
+      const u = (((lt - 0.8 - i * 0.25) % 2) + 2) % 2;               // one beam every 2 s, staggered
+      MD.beam(p, lt < 0.8 + i * 0.25 ? -1 : u, { start: 0, dur: 1.3, len: 0.3 });
+      const glow = lt < 0.8 + i * 0.25 ? 0 : (u > 1.3 ? Math.exp(-5 * (u - 1.3)) : 0);
+      const n = nodes[i]; n.style.borderColor = `rgba(165,144,255,${0.25 + 0.75 * glow})`;
+      n.style.boxShadow = `0 0 ${60 * glow}px rgba(139,108,255,${0.6 * glow})`;
+      const ns = spring(lt - 0.5 - i * 0.12, { k: 220, c: 20 });
+      n.style.transform = `translate(-50%,-50%) scale(${ns * (1 + 0.04 * glow)})`;
+    });
+  }, "#sD");
+
+  /* ---- E: end card (19 – 24) — the dot flies into the logo (shared-element handoff) ---- */
+  const START = { x: 810, y: 390, w: 300, h: 300 };
+  MD.scene(19, 24, (lt) => {
+    const dot = $("#dot"); dot.style.transform = "";
+    const dest = MD.rect(dot);                                     // layout position, measured with no transform
+    MD.fly(dot, START, dest, spring(lt - 0.05, { k: 90, c: 16 }));
+    MD.revealWords($("#word"), lt, { start: 0.85, stagger: 0.08 });
+    MD.revealWords($("#url"), lt, { start: 1.5 });
+    MD.revealWords($("#tag"), lt, { start: 1.9, stagger: 0.07 });
+  }, "#sE");
+
+  MD.ready();
+})();
+</script>
+</body>
+</html>

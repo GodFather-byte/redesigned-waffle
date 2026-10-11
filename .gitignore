@@ -1,0 +1,5 @@
+examples/*/out/
+examples/*/probe/
+examples/*/assets/
+__pycache__/
+*.pyc
