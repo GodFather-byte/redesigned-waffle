@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Ocean — procedural water</title>
+<style>html,body{margin:0;background:#000;overflow:hidden}canvas{display:block;width:100vw;height:100vh}</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script src="../../skill/motion-design/engine/engine.js"></script>
+<script id="vs" type="x-shader/x-vertex">#version 300 es
+void main(){ vec2 p = vec2((gl_VertexID<<1)&2, gl_VertexID&2); gl_Position = vec4(p*2.0-1.0, 0.0, 1.0); }
+</script>
+<script id="fs" type="x-shader/x-fragment">#version 300 es
+precision highp float;
+uniform vec2 uRes;
+uniform float uTime;
+out vec4 fragColor;
+
+const vec3 SUN = vec3(0.3418, 0.1659, 0.9242);       // normalised below; low golden-hour sun ahead/right
+const vec3 SUNC = vec3(1.0, 0.66, 0.38);
+const int MAXO = 28;
+
+float hash12(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+float vnoise(vec2 p){
+  vec2 i = floor(p), f = fract(p); f = f*f*f*(f*(f*6.0-15.0)+10.0);
+  return mix(mix(hash12(i), hash12(i+vec2(1,0)), f.x), mix(hash12(i+vec2(0,1)), hash12(i+vec2(1,1)), f.x), f.y);
+}
+float fbm(vec2 p){ float a=0.5, s=0.0; for(int i=0;i<5;i++){ s+=a*vnoise(p); p=p*2.03+vec2(17.1,9.2); a*=0.5; } return s; }
+
+/* Ocean height field: sum of directional waves shaped as exp(sin(x)-1) (sharp crests, wide troughs),
+   deep-water dispersion w = sqrt(g k), each octave warps the sampling position of the next (peaked crests).
+   `fp` = pixel footprint in metres: octaves with wavelength < a few pixels fade out (anti-aliasing). */
+float ocean(vec2 p, int n, float fp, out vec2 g, out float crest){
+  float h = 0.0, sa = 0.0, amp = 0.55, freq = 0.25;
+  g = vec2(0.0);
+  for(int i = 0; i < MAXO; i++){
+    if(i >= n) break;
+    float ang = 0.35 + (fract(sin(float(i)*91.3458)*47453.5453) - 0.5) * 2.2;
+    vec2 d = vec2(cos(ang), sin(ang));
+    float x = dot(d, p)*freq + uTime*sqrt(9.81*freq) + float(i)*7.3;
+    float fade = smoothstep(fp*1.5, fp*6.0, 6.2832/freq);
+    float e = exp(sin(x) - 1.0), a = amp*fade;
+    h += e*a; sa += a;
+    g += d * (e*cos(x)*freq*a);
+    p += d * (-e*cos(x)) * a * 0.45;
+    amp *= 0.78; freq *= 1.2;
+  }
+  crest = sa > 1e-4 ? (h/sa - 0.466)/0.534 : 0.0;
+  return h - 0.466*sa;
+}
+
+vec3 sky(vec3 rd){
+  rd.y = max(rd.y, 0.0);
+  vec3 sun = normalize(SUN);
+  float sd = max(dot(rd, sun), 0.0);
+  vec3 zen = vec3(0.05, 0.16, 0.42), hor = vec3(0.95, 0.60, 0.40);
+  vec3 c = mix(zen, hor, pow(1.0 - rd.y, 3.2));
+  c += vec3(1.0, 0.42, 0.16) * pow(sd, 18.0) * 0.40 * (1.0 - 0.5*rd.y);
+  c += vec3(1.0, 0.68, 0.38) * pow(sd, 60.0) * 0.9;
+  c += vec3(1.0, 0.86, 0.62) * pow(sd, 12000.0) * 40.0;
+  if(rd.y > 0.005){
+    vec2 cp = rd.xz/(rd.y + 0.14)*0.55 + vec2(uTime*0.012, 3.0);
+    float d = fbm(cp), l = fbm(cp + sun.xz*0.07);
+    float cl = smoothstep(0.56, 0.86, d) * smoothstep(0.0, 0.16, rd.y);
+    float light = clamp(0.45 + (d - l)*4.0 + pow(sd, 3.0)*0.6, 0.0, 1.0);
+    vec3 cc = mix(vec3(0.30, 0.33, 0.46), vec3(1.0, 0.70, 0.46)*1.5, light);
+    c = mix(c, cc, cl*0.8);
+  }
+  return c;
+}
+
+vec3 aces(vec3 x){ return clamp((x*(2.51*x + 0.03))/(x*(2.43*x + 0.59) + 0.14), 0.0, 1.0); }
+
+void main(){
+  vec3 sun = normalize(SUN);
+  float t = uTime;
+  vec2 uv = (gl_FragCoord.xy - 0.5*uRes)/uRes.y;
+  float roll = 0.018*sin(t*0.5);
+  uv = mat2(cos(roll), -sin(roll), sin(roll), cos(roll))*uv;
+
+  vec3 ro = vec3(0.7*sin(t*0.13), 3.0 + 0.14*sin(t*0.83) + 0.06*sin(t*1.9 + 1.0), t*1.5);
+  vec3 fw = normalize(vec3(0.10 + 0.04*sin(t*0.11), -0.07 + 0.012*sin(t*0.71), 1.0));
+  vec3 rt = normalize(cross(vec3(0,1,0), fw));
+  vec3 up = cross(fw, rt);
+  vec3 rd = normalize(uv.x*rt + uv.y*up + fw*0.95);
+  float pix = 1.2/uRes.y;                                   // ~ radians per pixel
+
+  vec3 col;
+  float tmax = 1200.0;
+  float hit = -1.0;
+  vec2 g; float crest;
+  if(rd.y < -0.0004){
+    float ytop = 1.6;
+    float tt = (ytop - ro.y)/rd.y, tprev = tt;
+    for(int i = 0; i < 70; i++){
+      vec3 p = ro + rd*tt;
+      float hh = ocean(p.xz, 9, tt*pix, g, crest);
+      float d = p.y - hh;
+      if(d < 0.003*tt){ hit = tt; break; }
+      tprev = tt;
+      tt += min(d/max(-rd.y, 0.05)*0.55, 60.0);
+      if(tt > tmax) break;
+    }
+    if(hit > 0.0){                                          // refine between last above-water and hit point
+      float lo = tprev, hi = hit;
+      for(int i = 0; i < 6; i++){
+        float m = 0.5*(lo + hi); vec3 p = ro + rd*m;
+        float d = p.y - ocean(p.xz, 9, m*pix, g, crest);
+        if(d > 0.0) lo = m; else hi = m;
+      }
+      hit = 0.5*(lo + hi);
+    }
+  }
+
+  if(hit < 0.0){
+    col = sky(rd);
+  } else {
+    vec3 p = ro + rd*hit;
+    float hh = ocean(p.xz, MAXO, hit*pix, g, crest);
+    vec3 n = normalize(vec3(-g.x, 1.0, -g.y));
+    n = normalize(mix(n, vec3(0,1,0), 1.0 - exp(-hit*0.0007)));    // far field flattens
+    float cosv = max(dot(n, -rd), 0.0);
+    float F = 0.02 + 0.98*pow(1.0 - cosv, 5.0);
+    vec3 rr = reflect(rd, n);
+    rr.y = abs(rr.y);
+    vec3 refl = sky(rr);
+
+    vec3 deep = vec3(0.003, 0.035, 0.075), shallow = vec3(0.01, 0.20, 0.19);
+    float lit = clamp(dot(n, sun), 0.0, 1.0);
+    vec3 body = mix(deep, shallow, clamp(crest*0.9 + 0.35, 0.0, 1.0)*0.45);
+    body += deep * SUNC * lit * 2.2;
+    float sss = smoothstep(0.15, 0.95, crest) * pow(clamp(dot(rd, sun), 0.0, 1.0), 3.0);
+    body += vec3(0.04, 0.55, 0.40) * sss * 1.4;                   // light transmitted through crests
+
+    col = mix(body, refl, F);
+    col += SUNC * pow(max(dot(rr, sun), 0.0), 900.0) * 6.0;          // fine glitter on top of the sky disc
+
+    // foam: high crests + broken-up texture, advected slowly
+    float fn = fbm(p.xz*1.3 + vec2(t*0.25, -t*0.12)) * 0.65 + fbm(p.xz*5.0 - t*0.2)*0.35;
+    float foam = smoothstep(0.30, 0.58, crest) * smoothstep(0.42, 0.70, fn);
+    foam *= 1.0 - smoothstep(60.0, 260.0, hit);
+    vec3 foamC = vec3(0.92, 0.94, 0.95)*(0.18 + 0.9*lit*SUNC) + sky(vec3(0,1,0))*0.12;
+    col = mix(col, foamC, clamp(foam, 0.0, 0.9));
+
+    float fog = 1.0 - exp(-hit*0.0008);                             // aerial perspective into the warm horizon
+    col = mix(col, sky(normalize(vec3(rd.x, 0.0, rd.z))) * 0.95, fog);
+  }
+
+  col *= 0.8;
+  col = aces(col);
+  col = pow(col, vec3(1.0/2.2));
+  vec2 q = gl_FragCoord.xy/uRes;
+  col *= 0.78 + 0.22*pow(16.0*q.x*q.y*(1.0 - q.x)*(1.0 - q.y), 0.22);   // vignette
+  col += (hash12(gl_FragCoord.xy + fract(t)*91.7) - 0.5)/255.0;             // dither, deterministic in t
+  fragColor = vec4(col, 1.0);
+}
+</script>
+<script>
+(() => {
+  const cv = document.getElementById("c");
+  const dpr = window.devicePixelRatio || 1;
+  cv.width = Math.round(innerWidth*dpr); cv.height = Math.round(innerHeight*dpr);
+  const gl = cv.getContext("webgl2", { preserveDrawingBuffer: true, antialias: false });
+  if(!gl) throw new Error("WebGL2 unavailable (run the renderer with --webgl / WEBGL=1)");
+  const mk = (type, id) => { const s = gl.createShader(type); gl.shaderSource(s, document.getElementById(id).textContent.trim());
+    gl.compileShader(s); if(!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s)); return s; };
+  const pr = gl.createProgram(); gl.attachShader(pr, mk(gl.VERTEX_SHADER, "vs")); gl.attachShader(pr, mk(gl.FRAGMENT_SHADER, "fs"));
+  gl.linkProgram(pr); if(!gl.getProgramParameter(pr, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(pr));
+  gl.useProgram(pr); gl.viewport(0, 0, cv.width, cv.height);
+  gl.uniform2f(gl.getUniformLocation(pr, "uRes"), cv.width, cv.height);
+  const uT = gl.getUniformLocation(pr, "uTime");
+  const START = +(new URLSearchParams(location.search).get("t0") || 0);   // start offset: pick the best-looking stretch of sea
+  MD.duration = 10;
+  MD.scene(0, MD.duration, (lt) => { gl.uniform1f(uT, lt + START); gl.drawArrays(gl.TRIANGLES, 0, 3); gl.finish(); });
+  MD.ready();
+})();
+</script>
+</body>
+</html>

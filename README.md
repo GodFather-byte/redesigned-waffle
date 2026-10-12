@@ -45,6 +45,24 @@ python ../../skill/motion-design/scripts/qc.py out/video.mp4 --cuts 3 14 19
 - **Tempo de render:** cerca de 0,3 s por captura em 1080p. O master (24 s × 60 fps × 8 subquadros) leva em torno de uma hora num notebook. Para revisar, use `--fps 30 --subframes 4`, e `--from/--to` para re-renderizar só a cena corrigida.
 - **Assets opcionais:** `python fetch_assets.py` baixa fonte Geist e logos, e lê `assets.json`. Os links de música/SFX do Mixkit ficam em branco de propósito: escolha as faixas e cole as URLs diretas. As URLs de fonte/logos **não foram verificadas** quando o repositório foi criado, porque o ambiente de criação bloqueava esses hosts; se alguma der 404, corrija no `assets.json`. Sem nenhum asset, tudo funciona: fonte do sistema (Inter), chips só com texto, e música/SFX sintetizados como reserva por `audio.py`.
 
+## Exemplo 2: massa de água realista (`examples/ocean`)
+
+Um oceano ao pôr do sol, 100% procedural, em um único shader WebGL2 (sem texturas nem vídeo de banco):
+
+- ondas direcionais `exp(sin(x)-1)` (cristas finas, cavas largas), dispersão de águas profundas `ω = √(g·k)` e deformação de domínio entre oitavas;
+- ray-marching do campo de alturas com refinamento por bisseção, anti-aliasing por oitava (as ondas menores que o pixel somem com a distância);
+- Fresnel, reflexo do céu procedural (sol, halo, nuvens), brilho do sol na superfície, transmissão de luz nas cristas, espuma e névoa até o horizonte;
+- câmera com deriva, balanço e rolagem sutis, tudo em função de `t` (o mesmo `seek(t)` e o desfoque por subquadros da skill).
+
+```bash
+cd examples/ocean
+python render.py probe 0 4 8      # stills -> probe/sheet.png
+python render.py draft            # prévia rápida
+python render.py full --fps 30 --subframes 3 --out out/ocean.mp4
+```
+
+O render usa SwiftShader (WebGL em CPU) e força `--webgl`. "Realista" aqui significa fotorrealista-procedural: não é uma simulação de fluidos (sem quebra de onda, respingos ou interação com objetos).
+
 ## O que a skill cobre
 
 - **Fluxo:** entradas → mapa de batidas → 4 stills aprovados → render completo → análise de som → áudio → final.
