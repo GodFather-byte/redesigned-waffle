@@ -156,7 +156,8 @@ def render(a, draft):
             sys.exit("no duration: pass --duration or set MD.duration in the page")
         t_from, t_to = a.t_from or 0, a.t_to or dur
         n0, n1 = int(round(t_from * fps)), int(round(t_to * fps))
-        proc = subprocess.Popen(ffmpeg_cmd(w, h, fps, out, a.crf if not draft else 23, "veryfast" if draft else a.preset),
+        tmp = out.with_name(f"{out.stem}.{os.getpid()}.part{out.suffix}")   # never write the final name directly
+        proc = subprocess.Popen(ffmpeg_cmd(w, h, fps, tmp, a.crf if not draft else 23, "veryfast" if draft else a.preset),
                                 stdin=subprocess.PIPE)
         fmt = "jpeg" if draft else "png"
         print(f"[mdrender] {'draft' if draft else 'full'} {w}x{h} @{fps}fps, {sub} subframes, cuts={pg.cuts}, frames {n0}..{n1-1}")
@@ -170,7 +171,10 @@ def render(a, draft):
             proc.stdin.write(frame.tobytes())
             if n % 30 == 0:
                 print(f"\r[mdrender] frame {n - n0 + 1}/{n1 - n0}", end="", flush=True)
-        proc.stdin.close(); proc.wait(); pg.close()
+        proc.stdin.close(); rc = proc.wait(); pg.close()
+        if rc != 0:
+            sys.exit(f"ffmpeg failed (exit {rc}); partial file left at {tmp}")
+        os.replace(tmp, out)
     print(f"\n[mdrender] wrote {out}")
 
 
